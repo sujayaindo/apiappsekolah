@@ -9,6 +9,9 @@ $tgl_akhir = isset($_GET['tgl_akhir']) ? $_GET['tgl_akhir'] : null;
 $kelas_id = isset($_GET['kelas_id']) && $_GET['kelas_id'] !== '' ? $_GET['kelas_id'] : null;
 $pelanggaran_id = isset($_GET['pelanggaran_id']) && $_GET['pelanggaran_id'] !== '' ? $_GET['pelanggaran_id'] : null;
 
+// Parameter baru untuk filter nama siswa
+$nama_siswa = isset($_GET['nama_siswa']) && $_GET['nama_siswa'] !== '' ? $_GET['nama_siswa'] : null;
+
 try {
     // 1. Ambil Tahun Ajaran Aktif dari tabel Settings
     $stmtSetting = $pdo->query("SELECT nilai FROM settings WHERE nama_setting = 'tahun_ajaran_aktif'");
@@ -18,7 +21,7 @@ try {
         throw new Exception("Tahun ajaran aktif belum ditentukan di tabel settings.");
     }
 
-    // 2. Query SQL dengan Filter Tahun Ajaran Aktif
+    // 2. Query SQL dengan Filter Tahun Ajaran Aktif dan parameter lainnya
     $sql = "SELECT 
                 s.id AS siswa_id, 
                 s.nama AS nama_siswa, 
@@ -31,7 +34,7 @@ try {
             JOIN tahun_ajaran ta ON sk.tahun_id = ta.tahun_id
             LEFT JOIN catatan_pelanggaran cp ON sk.id = cp.siswa_kelas_id
             LEFT JOIN pelanggaran p ON cp.pelanggaran_id = p.id
-            WHERE ta.kode = :tahun_aktif"; // Memastikan hanya data tahun ajaran ini
+            WHERE ta.kode = :tahun_aktif";
 
     $params = ['tahun_aktif' => $tahunAktifKode];
 
@@ -54,6 +57,12 @@ try {
         $params['pel_id'] = $pelanggaran_id;
     }
 
+    // Filter Pencarian Nama Siswa (LIKE)
+    if ($nama_siswa) {
+        $sql .= " AND s.nama LIKE :nama_siswa";
+        $params['nama_siswa'] = "%$nama_siswa%";
+    }
+
     $sql .= " GROUP BY s.id, s.nama, k.nama_kelas";
     $sql .= " HAVING total_poin > 0";
     $sql .= " ORDER BY total_poin DESC";
@@ -67,7 +76,6 @@ try {
         'data' => $results,
         'tahun_ajaran' => $tahunAktifKode
     ]);
-
 } catch (Exception $e) {
     echo json_encode([
         'status' => false,

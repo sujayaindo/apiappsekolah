@@ -71,11 +71,29 @@ try {
         }
     }
 
+    $nama_user = $user['username']; // Default jika nama asli tidak ditemukan
+    
+    if ($user['role'] == 'guru') {
+        // Ambil nama dari tabel guru
+        $stmtGuru = $pdo->prepare("SELECT nama FROM guru WHERE guru_id = ?");
+        $stmtGuru->execute([$user['ref_id']]);
+        $dataGuru = $stmtGuru->fetch();
+        if ($dataGuru) $nama_user = $dataGuru['nama'];
+    } elseif ($user['role'] == 'siswa') {
+        // Ambil nama dari tabel siswa
+        $stmtSiswa = $pdo->prepare("SELECT nama FROM siswa WHERE id = ?");
+        $stmtSiswa->execute([$user['ref_id']]);
+        $dataSiswa = $stmtSiswa->fetch();
+        if ($dataSiswa) $nama_user = $dataSiswa['nama'];
+    }
+
     echo json_encode([
         'status' => true,
         'message' => 'Session Valid',
         'data' => [
+            'user_id' => $user['user_id'],
             'username' => $user['username'],
+            'nama_lengkap' => $nama_user, // Data baru yang dikirim ke Flutter
             'role' => $user['role'],
             'can_report' => $can_report
         ]
